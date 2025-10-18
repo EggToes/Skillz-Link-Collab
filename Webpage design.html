@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>SkillLink — Demo (Toggle Employee/Employer)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <!-- Firebase (compat builds) -->
+    <script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-storage-compat.js"></script>
+
+    <style>
+      :root {
+        --bg: #f6f8fb;
+        --card: #fff;
+        --txt: #1f2937;
+        --muted: #6b7280;
+        --accent: #2563eb;
+      }
+      body {
+        font-family: system-ui, Arial;
+        margin: 0;
+        background: var(--bg);
+        color: var(--txt);
+      }
+      .wrap {
+        max-width: 1100px;
+        margin: 24px auto;
+        padding: 0 16px;
+      }
+      h1 {
+        font-size: 1.6rem;
+        margin: 0 0 8px;
+      }
+      h2 {
+        font-size: 1.25rem;
+        margin: 24px 0 12px;
+      }
+      .tabs {
+        display: flex;
+        gap: 8px;
+        margin: 4px 0 16px;
+      }
+      .tab {
+        background: #e5e7eb;
+        color: #111827;
+        padding: 8px 12px;
+        border-radius: 999px;
+        cursor: pointer;
+        border: 0;
+      }
+      .tab.active {
+        background: var(--accent);
+        color: #fff;
+      }
+      .card {
+        background: var(--card);
+        border-radius: 14px;
+        box-shadow: 0 4px 18px rgba(0, 0, 0, 0.06);
+        padding: 16px;
+        margin: 12px 0;
+      }
+      label {
+        display: block;
+        font-size: 0.9rem;
+        color: var(--muted);
+        margin-top: 10px;
+      }
+      input,
+      select,
+      textarea {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        margin-top: 6px;
+      }
+      button {
+        background: var(--accent);
+        color: #fff;
+        padding: 10px 14px;
+        border: 0;
+        border-radius: 10px;
+        cursor: pointer;
+      }
+      button.ghost {
+        background: #eef2ff;
+        color: #1f2937;
+      }
+      button.danger {
+        background: #ef4444;
+      }
+      .row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
+      .grid-2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+      }
+      .grid-3 {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 16px;
+      }
+      .program-card {
+        padding: 12px;
+        border: 1px solid #eef2f7;
+        border-radius: 12px;
+        margin-top: 10px;
+        background: #fff;
+      }
+      .muted {
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+      .list {
+        padding-left: 16px;
+      }
+      .pill {
+        font-size: 0.75rem;
+        padding: 2px 8px;
+        border-radius: 999px;
+        background: #eef2ff;
+      }
+      .status-pending {
+        background: #fff7ed;
+      }
+      .status-approved {
+        background: #ecfdf5;
+      }
+      .status-suspended {
+        background: #fef2f2;
+      }
+      .hidden {
+        display: none !important;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      th,
+      td {
+        padding: 8px;
+        border-bottom: 1px solid #eee;
+        text-align: left;
+      }
+      #notifyArea {
+        position: fixed;
+        right: 16px;
+        bottom: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        z-index: 10;
+      }
+      .toast {
+        background: #111827;
+        color: #fff;
+        padding: 10px 12px;
+        border-radius: 10px;
+        opacity: 0.95;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="notifyArea"></div>
+    <div class="wrap">
+      <h1>SkillLink — Demo Mode</h1>
+      <div class="tabs">
+        <button id="tabEmployee" class="tab active">Employee Page</button>
+        <button id="tabEmployer" class="tab">Employer Page</button>
+      </div>
+      <p class="muted" id="whoami">
+        Demo mode: use the toggle above to switch pages (no login required).
+      </p>
+
+      <!-- ===== EMPLOYEE PAGE ===== -->
+      <section id="employeePortal">
+        <!-- Profile -->
+        <div class="card">
+          <h2>Employee — Create / Update Profile</h2>
+          <form id="profileForm">
+            <div class="row">
+              <div>
+                <label>Name</label>
+                <input type="text" name="name" required />
+              </div>
+              <div>
+                <label>Contact</label>
+                <input type="text" name="contact" required />
+              </div>
+            </div>
+
+            <div class="row">
+              <div>
+                <label>Skills (comma separated)</label>
+                <input
+                  type="text"
+                  name="skills"
+                  placeholder="coding, leadership, teamwork"
+                  required
+                />
+              </div>
+              <div>
+                <label>Location (city/parish)</label>
+                <input type="text" name="location" placeholder="Kingston" />
+              </div>
+            </div>
+
+            <label>Experience</label>
+            <input
+              type="text"
+              name="experience"
+              placeholder="Short description"
+            />
+
+            <label>Education Level</label>
+            <input
+              type="text"
+              name="education"
+              placeholder="High school / Associate / etc."
+            />
+
+            <label>Resume (PDF)</label>
+            <input type="file" name="resume" accept=".pdf" />
+
+            <div style="margin-top: 12px">
+              <button type="submit">Save Profile</button>
+              <button id="loadProfileBtn" type="button" class="ghost">
+                Load Profile
+              </button>
+            </div>
+            <p class="muted">
+              Saved in <b>users</b> (doc id = employee name in demo), resume in
+              <b>Storage</b>.
+            </p>
+          </form>
+        </div>
+
+        <!-- Search -->
+        <div class="card">
+          <h2>Find Programs</h2>
+          <div class="grid-3">
+            <div>
+              <label>Filter by Skill</label>
+              <input id="skillFilter" placeholder="coding" />
+            </div>
+            <div>
+              <label>Filter by Location</label>
+              <input id="locationFilter" placeholder="Kingston" />
+            </div>
+            <div style="display: flex; align-items: end">
+              <button id="searchBtn" style="width: 100%">Search</button>
+            </div>
+          </div>
+          <div id="programList"></div>
+          <p class="muted">Top 5 results shown.</p>
+        </div>
+
+        <!-- Dashboard (includes recommendations) -->
+        <div class="card">
+          <h2>My Dashboard</h2>
+          <div id="dashboard"></div>
+        </div>
+      </section>
+
+      <!-- ===== EMPLOYER PAGE ===== -->
+      <section id="employerPortal" class="hidden">
+        <!-- Create Program -->
+        <div class="card">
+          <h2>Employer — Create Program</h2>
+          <form id="programForm">
+            <div class="row">
+              <div>
+                <label>Program Name</label>
+                <input name="title" required />
+              </div>
+              <div>
+                <label>Company / Group</label>
+                <input name="company" required />
+              </div>
+            </div>
+
+            <label>Description</label>
+            <textarea name="description" rows="3" required></textarea>
+
+            <div class="row">
+              <div>
+                <label>Requirements (text)</label>
+                <input
+                  name="requirements"
+                  placeholder="e.g., basic HTML, teamwork"
+                />
+              </div>
+              <div>
+                <label>Skill Categories (comma separated)</label>
+                <input name="skills" placeholder="coding, teamwork" />
+              </div>
+            </div>
+
+            <div class="row">
+              <div>
+                <label>Location</label>
+                <input name="location" placeholder="Kingston" />
+              </div>
+              <div>
+                <label>Duration</label>
+                <input name="duration" placeholder="6 weeks" />
+              </div>
+            </div>
+
+            <label>Curriculum PDF</label>
+            <input type="file" name="curriculum" accept=".pdf" />
+
+            <div style="margin-top: 12px">
+              <button type="submit">Create Program</button>
+            </div>
+            <p class="muted">
+              New programs start as <b>pending</b> until approved by admin (you
+              can flip status later).
+            </p>
+          </form>
+        </div>
+
+        <!-- Manage Programs -->
+        <div class="card">
+          <h2>Manage My Programs</h2>
+          <div class="muted">
+            Demo uses the "Employer Name" box below to load your programs.
+          </div>
+          <div class="row" style="margin-top: 8px">
+            <div>
+              <label>Employer Name (for demo ownership)</label>
+              <input id="employerName" placeholder="EmployerA" />
+            </div>
+            <div style="display: flex; align-items: end">
+              <button id="loadMyProgramsBtn" style="width: 100%">
+                Load My Programs
+              </button>
+            </div>
+          </div>
+          <div id="myPrograms"></div>
+        </div>
+
+        <!-- Participants -->
+        <div class="card">
+          <h2>View Enrolled Participants</h2>
+          <div class="row">
+            <div>
+              <label>Program ID</label>
+              <input
+                id="participantsProgramId"
+                placeholder="Paste a Program ID"
+              />
+            </div>
+            <div style="display: flex; align-items: end">
+              <button id="loadParticipantsBtn" style="width: 100%">
+                Load Participants
+              </button>
+            </div>
+          </div>
+          <div id="participants"></div>
+        </div>
+
+        <!-- Status Dashboard -->
+        <div class="card">
+          <h2>Program Status Dashboard</h2>
+          <div id="stats"></div>
+        </div>
+      </section>
+    </div>
+
+    <script src="./script.js" defer></script>
+  </body>
+</html>
+
+
